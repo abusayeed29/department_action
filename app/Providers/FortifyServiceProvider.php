@@ -8,6 +8,12 @@ use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Fortify;
+use Illuminate\Contracts\Auth\StatefulGuard;
+use Illuminate\Support\Facades\Auth;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -19,6 +25,9 @@ class FortifyServiceProvider extends ServiceProvider
     public function register()
     {
         //
+        $this->app->bind(StatefulGuard::class, function () {
+            return Auth::guard('admin');
+        });
     }
 
     /**
@@ -36,17 +45,24 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::loginView(function () {
             return view('auth.login');
         });
+
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = User::where('email', $request->email)->first();
+        
+            if ($user &&
+                Hash::check($request->password, $user->password)) {
+                return $user;
+            }
+        });
+
         Fortify::registerView(function () {
             return view('auth.register');
         });
         Fortify::requestPasswordResetLinkView(function () {
-            return view('auth.forgot-password');
+            return view('auth.passwords.email');
         });
         Fortify::resetPasswordView(function ($request) {
-            return view('auth.reset-password', ['request' => $request]);
-        });
-        Fortify::requestPasswordResetLinkView(function () {
-            return view('auth.forgot-password');
+            return view('auth.passwords.reset', ['request' => $request]);
         });
         Fortify::verifyEmailView(function () {
             return view('auth.verify-email');

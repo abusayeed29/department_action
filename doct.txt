@@ -1,0 +1,2 @@
+php artisan make:model Admin -mcf
+php artisan migrate --seed
